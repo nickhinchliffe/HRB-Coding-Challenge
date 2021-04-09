@@ -94,12 +94,11 @@ public class DeviceDriver {
 					initPid = Integer.parseInt(reader.readLine());
 					
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
 			
-			res = checkInitResults(initPid);
+			res = checkInitResults(initPid, res);
 			
 		}
 		else {
@@ -110,20 +109,19 @@ public class DeviceDriver {
 	
 	//Recursively checking if MockBot is initialized
 	//Will update init boolean or abort with error
-	private String checkInitResults(int initPid) {
-		// check status of home
-		String res = "";
+	private String checkInitResults(int initPid, String res) {
 		//Checking In progress first so we don't have to check something else first
 		if(checkBot(initPid).equals("In Progress")) {
 			//Should I wait for some time???
-			checkInitResults(initPid);
+			checkInitResults(initPid, res);
 		}
 		else if(checkBot(initPid).equals("Terminated With Error")) {
-			res = "MockBot has Terminated With Error! Bot has not been initialized";
+			res = "Terminated With Error";
 			abort();
 		}
 		else {
 			init = true;
+			ready = true;
 		}
 		return res;
 	}
@@ -147,7 +145,6 @@ public class DeviceDriver {
 		}
 		
 		return res;
-		
 	}
 	
 	//Check to see if input to ExecuteOperation is valid
@@ -209,10 +206,7 @@ public class DeviceDriver {
 			//Checking to see if the MockBot is ready for more commands
 			if(ready) {
 				//Getting the last called operation
-				if(calledOperations.size() == 0) {
-					lastOperation = operation;
-					calledOperations.add(operation);
-				}else {
+				if(calledOperations.size() != 0) {
 					lastOperation = calledOperations.get(calledOperations.size()-1);
 				}
 				
@@ -236,7 +230,6 @@ public class DeviceDriver {
 								pid = Integer.parseInt(reader.readLine());
 								
 							} catch (IOException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
 							}
 						}
@@ -245,7 +238,7 @@ public class DeviceDriver {
 						calledOperations.add(operation);
 						pids.add(pid);
 						//check the status and update is ready
-						res = checkMockBotStatus(pid);
+						res = checkMockBotStatus(pid, res);
 					}
 				}
 				else if(operation.equals("place")) {
@@ -274,7 +267,7 @@ public class DeviceDriver {
 						calledOperations.add(operation);
 						pids.add(pid);
 						//check the status and update is ready
-						res = checkMockBotStatus(pid);
+						res = checkMockBotStatus(pid, res);
 					}
 				}
 				else {
@@ -303,7 +296,7 @@ public class DeviceDriver {
 						calledOperations.add(operation);
 						pids.add(pid);
 						//check the status and update is ready
-						res = checkMockBotStatus(pid);
+						res = checkMockBotStatus(pid, res);
 					}
 				}
 			}
@@ -314,19 +307,18 @@ public class DeviceDriver {
 	
 	//Recursively checking if MockBot is initialized
 		//Will update init boolean or abort with error
-		private String checkMockBotStatus(int pid) {
-			// check status of home
-			String res = "";
-			if(checkBot(pid).equals("Finished Successfully")) {
-				ready = true;
+		private String checkMockBotStatus(int pid, String res) {
+			//Checking In progress first so we don't have to check something else first
+			if(checkBot(pid).equals("In Progress")) {
+				//Should I wait for some time???
+				checkInitResults(pid, res);
 			}
 			else if(checkBot(pid).equals("Terminated With Error")) {
 				res = "Terminated With Error";
 				abort();
 			}
 			else {
-				//Should I wait for some time???
-				checkMockBotStatus(pid);
+				ready = true;
 			}
 			return res;
 		}
