@@ -1,5 +1,4 @@
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -9,22 +8,22 @@ import java.io.PrintWriter;
 import java.net.*;
 
 public class DeviceDriver {
-	//Lists
-	private static List<String> calledOperations = new ArrayList<>();
-	private static List<Integer> pids = new ArrayList<>();
 	
 	//Connection information
-	private static Socket socket = null;
-	private static InputStream input = null;
-	private static OutputStream output = null;
-	private static PrintWriter writer = null;
-	private static BufferedReader reader = null;
-	static int port = 1000;
+	private Socket socket = null;
+	private InputStream input = null;
+	private OutputStream output = null;
+	private PrintWriter writer = null;
+	private BufferedReader reader = null;
+	private int port = 1000;
+	
+	//Lists
+	private List<String> calledOperations = new ArrayList<>();
 	
 	//Booleans
-	private static boolean init = false;
-	private static boolean ready = false;
-
+	private boolean init = false;
+	private boolean ready = false;
+	
 	
 	private String abort() {
 		//Checking to see if there is an existing connection before closing the connection
@@ -70,8 +69,8 @@ public class DeviceDriver {
 				writer = new PrintWriter(output, true);
 				
 			}
-			catch(IOException e) {
-				e.printStackTrace();
+			catch(Exception e) {
+				res = "There has been an error connecting to MockBot";
 			}
 		}
 		return res;
@@ -83,18 +82,17 @@ public class DeviceDriver {
 		String res = "";
 		if(init == false  && socket.isConnected()) {
 			int initPid = -1;
-			String homeCommand = "home";
+			
 			//Sending home command plus over.
-			writer.println(homeCommand);
-			System.out.println("initialized sent");
+			writer.println("home");
 			
 			//Get home pid
 			while(initPid == -1) {
 				try {
 					initPid = Integer.parseInt(reader.readLine());
 					
-				} catch (IOException e) {
-					e.printStackTrace();
+				} catch (Exception e) {
+					res = "Could not read from MockBot";
 				}
 			}
 			
@@ -139,8 +137,7 @@ public class DeviceDriver {
 				res = reader.readLine();
 				
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				res = "Could not read from MockBot";
 			}
 		}
 		
@@ -156,10 +153,13 @@ public class DeviceDriver {
 					Integer.parseInt(parameterValues[0]);
 					output = true;
 				}
-				catch(NumberFormatException e){
-					e.printStackTrace();
+				catch(Exception e){
+					System.out.println("The parameter value can't be changed into an integer");
 					output = false;
 				}
+			}
+			else {
+				System.out.println("Pick needs to have Source Location as it's parameterNames[0]");
 			}
 		}
 		else if(operation.equals("Place")) {
@@ -168,10 +168,13 @@ public class DeviceDriver {
 					Integer.parseInt(parameterValues[0]);
 					output = true;
 				}
-				catch(NumberFormatException e){
-					e.printStackTrace();
+				catch(Exception e){
+					System.out.println("The parameter value can't be changed into an integer");
 					output = false;
 				}
+			}
+			else {
+				System.out.println("Place needs to have Destination Location as it's parameterNames[0]");
 			}
 		}
 		else if(operation.equals("Transfer")) {
@@ -181,8 +184,8 @@ public class DeviceDriver {
 					Integer.parseInt(parameterValues[1]);
 					output = true;
 				}
-				catch(NumberFormatException e){
-					e.printStackTrace();
+				catch(Exception e){
+					System.out.println("The parameter value(s) can't be changed into an integer");
 					output = false;
 				}
 			}
@@ -198,7 +201,7 @@ public class DeviceDriver {
 	private String executeOperation(String operation, String[] parameterNames, String[] parameterValues) {
 		String command = "";
 		int pid = -1;
-		String lastOperation = "";
+		String lastOperation = operation;
 		String res = "";
 		
 		//Check to see if the user input is valid
@@ -214,12 +217,13 @@ public class DeviceDriver {
 				//See if operation is possible, then run if it is.
 				if(operation.equals("pick")) {
 					if(lastOperation.equals("pick")) {
-						res = "MockRobot is currently holding an item! Please drop the item and try again";
+						res = "MockRobot is currently holding an item! Please place the item and try again";
 					}
 					else {
 						//Since pick can pick up from only 1 location, parameterNames & parameterValues will
 						//have a size of 1
 						command = operation.concat("%".concat(parameterNames[0].concat("%".concat(parameterValues[0]))));
+						
 						//Send command to MockBot
 						ready = false;
 						writer.println(command);
@@ -229,14 +233,13 @@ public class DeviceDriver {
 							try {
 								pid = Integer.parseInt(reader.readLine());
 								
-							} catch (IOException e) {
-								e.printStackTrace();
+							} catch (Exception e) {
+								System.out.println("The parameter value can't be changed into an integer");
 							}
 						}
 						
 						//Keep track of commands sent to bot
 						calledOperations.add(operation);
-						pids.add(pid);
 						//check the status and update is ready
 						res = checkMockBotStatus(pid, res);
 					}
@@ -260,12 +263,11 @@ public class DeviceDriver {
 								
 							} catch (IOException e) {
 								// TODO Auto-generated catch block
-								e.printStackTrace();
+								System.out.println("The parameter value can't be changed into an integer");
 							}
 						}
 						//Keep track of commands sent to bot
 						calledOperations.add(operation);
-						pids.add(pid);
 						//check the status and update is ready
 						res = checkMockBotStatus(pid, res);
 					}
@@ -287,14 +289,13 @@ public class DeviceDriver {
 							try {
 								pid = Integer.parseInt(reader.readLine());
 								
-							} catch (IOException e) {
+							} catch (Exception e) {
 								// TODO Auto-generated catch block
-								e.printStackTrace();
+								System.out.println("The parameter value can't be changed into an integer");
 							}
 						}
 						//Keep track of commands sent to bot
 						calledOperations.add(operation);
-						pids.add(pid);
 						//check the status and update is ready
 						res = checkMockBotStatus(pid, res);
 					}
@@ -323,36 +324,5 @@ public class DeviceDriver {
 			return res;
 		}
 	
-	
-	
-
-	public static void main(String[] args) {
-		//NOT SURE IF I NEED THIS MAIN
-		
-		//Let's say the UI communicates with DeviceDriver over console input
-		Scanner scan = new Scanner(System.in);
-		String input = "";
-		
-		//Instanciating DeviceDriver
-		DeviceDriver driver = new DeviceDriver(1000);
-		
-		//Open Network connection to MockBot
-		driver.openConnection("192.168.1.25");
-		
-		//Initialize MockBot
-		driver.initialize();
-		
-		//Run user commands
-		//Assuming user knows all commands
-		//
-		while(input != "Finished") {
-			input = scan.nextLine();
-			
-		}
-		
-		
-		
-		driver.abort();
-	}
 
 }
