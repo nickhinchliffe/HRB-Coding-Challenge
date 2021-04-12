@@ -49,7 +49,8 @@ public class DeviceDriver {
 	}
 	
 	//Required Interface method
-	//When a user presses the “Open Connection” button, the UI calls this function and expects the Device Driver to establish a connection with the MockRobot onboard software.
+	//When a user presses the “Open Connection” button, the UI calls this function
+	//and expects the Device Driver to establish a connection with the MockRobot onboard software.
 	private String openConnection(String IPAddress) {
 		String res = "";
 		//Checking to see if there is an existing connection before opening one
@@ -79,7 +80,8 @@ public class DeviceDriver {
 	}
 	
 	//Required Interface method.
-	//When a user presses the “Initialize” button, the UI calls this function and expects that the Device Driver will put the MockRobot into an automation-ready (homed) state.
+	//When a user presses the “Initialize” button, the UI calls this function 
+	//and expects that the Device Driver will put the MockRobot into an automation-ready (homed) state.
 	private String initialize() {
 		//Check to see if MockBot has been initialized and a connection exists.
 		String res = "";
@@ -93,13 +95,13 @@ public class DeviceDriver {
 			while(initPid == -1) {
 				try {
 					initPid = Integer.parseInt(reader.readLine());
-					//Check to see if initialize() has completed
-					res = checkInitResults(initPid, res);
 					
 				} catch (Exception e) {
-					res = "Could not read from MockBot";
+					res = "Could not parse Integer";
 				}
 			}
+			//Check to see if initialize() has completed
+			res = checkInitResults(initPid, res);
 			
 		}
 		else {
@@ -200,12 +202,93 @@ public class DeviceDriver {
 			output = false;
 		}
 		return output;
-		
 	}
 	
-	//When a user presses the “Execute Operation” button, the UI calls this function and expects that the Device Driver will perform an operation determined by the parameter operation.
+	private String pick(String location, String res, int pid, String lastOperation) {
+		if(lastOperation.equals("pick")) {
+			res = "MockRobot is currently holding an item! Please place the item and try again";
+		}
+		else {
+			//Since pick can pick up from only 1 location, parameterNames & parameterValues will
+			//have a size of 1
+			String command = "pick%Source Location%".concat(location);
+			ready = false;
+			//Sending pick command to MockRobot.
+			writer.println(command);
+		
+			//Wait for response from MockBot.
+			while(pid == -1) {
+				try {
+					pid = Integer.parseInt(reader.readLine());
+				
+				} catch (Exception e) {
+					res = "The parameter value can't be changed into an integer";
+				}
+			}
+			//Since this block will run after catch, we need to make sure there is a need to run this.
+			if(res == "") {
+				//check the status and update is ready
+				res = checkMockBotStatus(pid, res);
+				//Keep track of commands sent to bot
+				calledOperations.add("pick");
+			}
+		}
+		return res;
+	}
+	
+	private String place(String location, String res, int pid, String lastOperation) {
+		if(lastOperation.equals("place")) {
+			res = "MockRobot doesn't have an item to place! Please pick up an item and try again.";
+		}else {
+			//Since place can only put an item at  up from only 1 location, parameterNames & parameterValues will
+			//have a size of 1.
+			String command = "place%Destination Location%".concat(location);
+			ready = false;
+			//Sending place command to MockBot.
+			writer.println(command);
+		
+			
+			//Wait for response from MockRobot
+			while(pid == -1) {
+				try {
+					pid = Integer.parseInt(reader.readLine());
+					
+				} catch (Exception e) {
+					res = "The parameter value can't be changed into an integer";
+				}
+			}
+			//Since this block will run after catch, we need to make sure there is a need to run this.
+			if(res == "") {
+				//check the status and update is ready
+				res = checkMockBotStatus(pid, res);
+				//Keep track of commands sent to bot
+				calledOperations.add("place");
+			}
+		}
+		return res;
+	}
+	
+	private String transfer(String[] parameterNames, String[] parameterValues, String res, int pid, String lastOperation) {
+		//Check to see what the parameterName is to determine what operation to complete first
+		if(parameterNames[0].equals("Destination Location")) {
+			res = place(parameterValues[0], res, pid, lastOperation);
+			if(res == "") {
+				res = pick(parameterValues[1], res, pid, lastOperation);
+			}
+		}
+		else {
+			res = pick(parameterValues[0], res, pid, lastOperation);
+			if(res == "") {
+				res = place(parameterValues[1], res, pid, lastOperation);
+			}
+		}
+		return res;
+	}
+	
+	
+	//When a user presses the “Execute Operation” button, the UI calls this function and 
+	//expects that the Device Driver will perform an operation determined by the parameter operation.
 	private String executeOperation(String operation, String[] parameterNames, String[] parameterValues) {
-		String command = "";
 		int pid = -1;
 		String lastOperation = operation;
 		String res = "";
@@ -218,101 +301,24 @@ public class DeviceDriver {
 				if(calledOperations.size() != 0) {
 					lastOperation = calledOperations.get(calledOperations.size()-1);
 				}
-				
 				//Once Bot is ready and operation is valid
 				//See if operation is possible, then run if it is.
 				if(operation.equals("pick")) {
-					if(lastOperation.equals("pick")) {
-						res = "MockRobot is currently holding an item! Please place the item and try again";
-					}
-					else {
-						//Since pick can pick up from only 1 location, parameterNames & parameterValues will
-						//have a size of 1
-						command = operation.concat("%".concat(parameterNames[0].concat("%".concat(parameterValues[0]))));
-						ready = false;
-						//Sending pick command to MockRobot.
-						writer.println(command);
-						
-						//Wait for response from MockBot.
-						while(pid == -1) {
-							try {
-								pid = Integer.parseInt(reader.readLine());
-								
-							} catch (Exception e) {
-								res = "The parameter value can't be changed into an integer";
-							}
-						}
-						//Since this block will run after catch, we need to make sure there is a need to run this.
-						if(res == "") {
-							//Keep track of commands sent to bot
-							calledOperations.add(operation);
-							//check the status and update is ready
-							res = checkMockBotStatus(pid, res);
-						}
-					}
+					//Call pick method
+					res = pick(parameterValues[0], res, pid, lastOperation);
 				}
 				else if(operation.equals("place")) {
-					if(lastOperation.equals("place")) {
-						res = "MockRobot doesn't have an item to place! Please pick up an item and try again.";
-					}
-					else {
-						//Since place can only put an item at  up from only 1 location, parameterNames & parameterValues will
-						//have a size of 1.
-						command = operation.concat("%".concat(parameterNames[0].concat("%".concat(parameterValues[0]))));
-						ready = false;
-						//Sending place command to MockBot.
-						writer.println(command);
-					
-						
-						//Wait for response from MockRobot
-						while(pid == -1) {
-							try {
-								pid = Integer.parseInt(reader.readLine());
-								
-							} catch (Exception e) {
-								res = "The parameter value can't be changed into an integer";
-							}
-						}
-						//Since this block will run after catch, we need to make sure there is a need to run this.
-						if(res == "") {
-							//Keep track of commands sent to bot
-							calledOperations.add(operation);
-							//check the status and update is ready
-							res = checkMockBotStatus(pid, res);
-						}
-					}
+					//Call place method
+					res = place(parameterValues[0], res, pid, lastOperation);
 				}
 				else {
-					//Transfer first picks up an item then places it in another location
-					if(lastOperation.equals("pick")) {
-						res = "MockRobot is currently holding an item!";
-					}
-					else {
-						//Since place can only put an item at  up from only 1 location, parameterNames & parameterValues will
-						//have a size of 1
-						command = operation.concat("%".concat(parameterNames[0].concat("%".concat(parameterValues[0].concat("%".concat(parameterNames[1].concat("%").concat(parameterValues[1])))))));
-						ready = false;
-						//Sending transfer command to MockBot
-						writer.println(command);
-						
-						
-						//Wait for response from MockRobot
-						while(pid == -1) {
-							try {
-								pid = Integer.parseInt(reader.readLine());
-								
-							} catch (Exception e) {
-								res = "The parameter value can't be changed into an integer";
-							}
-						}
-						//Since this block will run after catch, we need to make sure there is a need to run this.
-						if(res == "") {
-							//Keep track of commands sent to bot
-							calledOperations.add(operation);
-							//check the status and update is ready
-							res = checkMockBotStatus(pid, res);
-						}
-					}
+					//Call transfer method
+					res = transfer(parameterNames, parameterValues, res, pid, lastOperation);
+					
+					//Don't want to keep track of transfer
+					//Because of cases like Transfer(place->pick) then another pick.
+					//A transfer as an operation would allow that pick where as
+					//not including it wouldn't.
 				}
 			}
 		}
