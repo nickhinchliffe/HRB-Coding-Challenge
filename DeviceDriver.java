@@ -100,8 +100,11 @@ public class DeviceDriver {
 					res = "Could not parse Integer";
 				}
 			}
+			
+			if(res == "") {
 			//Check to see if initialize() has completed
 			res = checkInitResults(initPid, res);
+			}
 			
 		}
 		else {
@@ -140,7 +143,6 @@ public class DeviceDriver {
 		
 		while(res == "") {
 			try {
-				//Update res for ExecuteOperation
 				res = reader.readLine();
 				
 			} catch (Exception e) {
@@ -205,7 +207,7 @@ public class DeviceDriver {
 	}
 	
 	private String pick(String location, String res, int pid, String lastOperation) {
-		if(lastOperation.equals("pick")) {
+		if(lastOperation.equals("Pick")) {
 			res = "MockRobot is currently holding an item! Please place the item and try again";
 		}
 		else {
@@ -230,14 +232,14 @@ public class DeviceDriver {
 				//check the status and update is ready
 				res = checkMockBotStatus(pid, res);
 				//Keep track of commands sent to bot
-				calledOperations.add("pick");
+				calledOperations.add("Pick");
 			}
 		}
 		return res;
 	}
 	
 	private String place(String location, String res, int pid, String lastOperation) {
-		if(lastOperation.equals("place")) {
+		if(lastOperation.equals("Place")) {
 			res = "MockRobot doesn't have an item to place! Please pick up an item and try again.";
 		}else {
 			//Since place can only put an item at  up from only 1 location, parameterNames & parameterValues will
@@ -262,7 +264,7 @@ public class DeviceDriver {
 				//check the status and update is ready
 				res = checkMockBotStatus(pid, res);
 				//Keep track of commands sent to bot
-				calledOperations.add("place");
+				calledOperations.add("Place");
 			}
 		}
 		return res;
@@ -299,15 +301,16 @@ public class DeviceDriver {
 			if(ready) {
 				//Getting the last called operation
 				if(calledOperations.size() != 0) {
+					//Getting last called operation in lastOperation
 					lastOperation = calledOperations.get(calledOperations.size()-1);
 				}
 				//Once Bot is ready and operation is valid
 				//See if operation is possible, then run if it is.
-				if(operation.equals("pick")) {
+				if(operation.equals("Pick")) {
 					//Call pick method
 					res = pick(parameterValues[0], res, pid, lastOperation);
 				}
-				else if(operation.equals("place")) {
+				else if(operation.equals("Place")) {
 					//Call place method
 					res = place(parameterValues[0], res, pid, lastOperation);
 				}
@@ -321,6 +324,12 @@ public class DeviceDriver {
 					//not including it wouldn't.
 				}
 			}
+			else {
+				res = "MockBot is not ready for commands. Try again.";
+			}
+		}
+		else {
+			res = "Input parameters were not valid. Please fix them and try again";
 		}
 		return res;
 	}
