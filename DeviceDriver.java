@@ -292,7 +292,7 @@ public class DeviceDriver {
 	//expects that the Device Driver will perform an operation determined by the parameter operation.
 	private String executeOperation(String operation, String[] parameterNames, String[] parameterValues) {
 		int pid = -1;
-		String lastOperation = operation;
+		String lastOperation = "";
 		String res = "";
 		
 		//Check to see if the user input is valid
